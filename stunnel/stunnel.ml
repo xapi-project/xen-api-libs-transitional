@@ -25,7 +25,6 @@ exception Stunnel_binary_missing
 exception Stunnel_error of string
 exception Stunnel_verify_error of string
 
-let certificate_path = "/etc/stunnel/certs"
 let certificates_bundle_path = "/etc/stunnel/xapi-stunnel-ca-bundle.pem"
 let crl_path = "/etc/stunnel/crls"
 let verify_certificates_ctrl = "/var/xapi/verify_certificates"
