@@ -21,7 +21,7 @@ open D
 
 module E = Debug.Make(struct let name = "mscgen" end)
 
-let () = Debug.disable ~level:Syslog.Debug "mscgen"
+let () = Debug.disable ~level:Xcp_syslog.Debug "mscgen"
 
 module Internal = struct
   let set_stunnelpid_callback : (string option -> int -> unit) option ref = ref None
