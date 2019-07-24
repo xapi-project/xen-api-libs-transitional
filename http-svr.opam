@@ -14,7 +14,7 @@ depends: [
   "dune" {build}
   "astring"
   "base64" {>= "3.1.0"}
-  "rpc"
+  "rpc" | ("rpclib" & "ppx_deriving_rpc")
   "sha"
   "stunnel"
   "xapi-stdext-date"
