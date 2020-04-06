@@ -1,0 +1,3 @@
+(library
+ (name resources)
+ (libraries logs xapi-backtrace fmt xapi-stdext-pervasives))

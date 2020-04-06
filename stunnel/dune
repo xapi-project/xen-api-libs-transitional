@@ -6,6 +6,9 @@
   (libraries astring
              forkexec
              threads
+             fmt
+             ptime
+             logs.fmt
              xapi-stdext-monadic
              xapi-stdext-pervasives
              xapi-stdext-threads

@@ -1,0 +1,5 @@
+(tests
+ (names test)
+ (action
+  (run %{test} -e))
+ (libraries resources logs.fmt alcotest))
