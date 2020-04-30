@@ -8,6 +8,9 @@ end
 
 val create : unit -> (module S)
 
+(* for internal use only *)
+val create_noop: unit -> (module S)
+
 val add : 'a t -> 'b Safe_dropable.t -> unit
 
 val drop : 'a t -> unit

@@ -1,3 +1,4 @@
 (library
  (name resources)
+ (public_name xapi-libs-transitional.xapi_stdext_resources)
  (libraries logs xapi-backtrace fmt xapi-stdext-pervasives))

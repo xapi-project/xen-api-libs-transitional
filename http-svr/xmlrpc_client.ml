@@ -15,6 +15,7 @@
 open Xapi_stdext_monadic
 open Xapi_stdext_pervasives.Pervasiveext
 open Xapi_stdext_threads.Threadext
+open Resources
 
 module D = Debug.Make(struct let name = "xmlrpc_client" end)
 open D
@@ -52,7 +53,7 @@ let write_to_log x = StunnelDebug.debug "%s" (Astring.String.trim x)
     for an unknown method and checking we get a matching MESSAGE_METHOD_UNKNOWN.
     This is used to prevent us accidentally trying to reuse a connection which has been 
     closed or left in some other inconsistent state. *)
-let check_reusable_inner (x: Unix.file_descr) =
+let check_reusable_inner (x: 'a Unixfd.t) =
   let msg_name = "system.isAlive" in
   let msg_uuid = Uuidm.to_string (Uuidm.create `V4) in
   (* This is for backward compatability *)
@@ -62,13 +63,13 @@ let check_reusable_inner (x: Unix.file_descr) =
   let http = xmlrpc ~version:"1.1" ~keep_alive:true ~body:xml "/" in
 
   try
-    Http_client.rpc x http
+    Http_client.rpc (Unixfd.borrow_exn x) http
       (fun response _ ->
          match response.Http.Response.content_length with
          | Some len ->
            let len = Int64.to_int len in
            let tmp = Bytes.make len 'X' in
-           let buf = Buf_io.of_fd x in
+           let buf = Buf_io.of_fd (Unixfd.borrow_exn x) in
            Buf_io.really_input buf tmp 0 len;
            let tmp = Bytes.unsafe_to_string tmp in
            begin match XMLRPC.From.methodResponse (Xml.parse_string tmp) with
@@ -160,19 +161,20 @@ let assert_dest_is_ok host =
 
 (** Returns an stunnel, either from the persistent cache or a fresh one which
     has been checked out and guaranteed to work. *)
-let get_reusable_stunnel ?use_fork_exec_helper ?write_to_log ?verify_cert host port =
+let get_reusable_stunnel ?use_fork_exec_helper ?write_to_log scope ?verify_cert host port =
   let found = ref None in
   (* 1. First check if there is a suitable stunnel in the cache. *)
   let verify_cert = Stunnel.must_verify_cert verify_cert in
   begin
     try
       while !found = None do
-        let (x: Stunnel.t) = Stunnel_cache.remove host port verify_cert in
-        if check_reusable x.Stunnel.fd (Stunnel.getpid x.Stunnel.pid)
-        then found := Some x
+        let x = Stunnel_cache.remove scope host port verify_cert in
+        let xb = Scoped_dropable.borrow_exn x in
+        if check_reusable xb.Stunnel.fd (Stunnel.getpid xb.Stunnel.pid)
+        then found := Some (Scoped_dropable.move_exn scope x)
         else begin
           StunnelDebug.debug "get_reusable_stunnel: Found non-reusable stunnel in the cache. disconnecting from %s:%d" host port;
-          Stunnel.disconnect x
+          Scoped_dropable.release x
         end
       done
     with Not_found -> ()
@@ -191,14 +193,15 @@ let get_reusable_stunnel ?use_fork_exec_helper ?write_to_log ?verify_cert host p
         incr attempt_number;
         try
           let unique_id = get_new_stunnel_id () in
-          let (x: Stunnel.t) = Stunnel.connect ~unique_id ?use_fork_exec_helper ?write_to_log ~verify_cert host port in
-          if check_reusable x.Stunnel.fd (Stunnel.getpid x.Stunnel.pid)
+          let x = Stunnel.connect ~unique_id ?use_fork_exec_helper ?write_to_log ~verify_cert scope host port in
+          let xb = Scoped_dropable.borrow_exn x in
+          if check_reusable xb.Stunnel.fd (Stunnel.getpid xb.Stunnel.pid)
           then found := Some x
           else begin
             assert_dest_is_ok host;
             StunnelDebug.error "get_reusable_stunnel: fresh stunnel failed reusable check; delaying %.2f seconds before reconnecting to %s:%d (attempt %d / %d)" delay host port !attempt_number max_attempts;
             Thread.delay delay;
-            Stunnel.disconnect x
+            Scoped_dropable.release x
           end
         with e ->
           assert_dest_is_ok host;
@@ -274,12 +277,14 @@ let with_transport transport f =
       use_stunnel_cache = use_stunnel_cache;
       verify_cert = verify_cert;
       task_id = task_id}, host, port) ->
-    let st_proc =
+    Scope.local @@ fun (module L) ->
+    let st_proc' =
       if use_stunnel_cache
-      then get_reusable_stunnel ~use_fork_exec_helper ~write_to_log ?verify_cert host port
+      then get_reusable_stunnel ~use_fork_exec_helper ~write_to_log ?verify_cert L.scope host port
       else
         let unique_id = get_new_stunnel_id () in
-        Stunnel.connect ~use_fork_exec_helper ~write_to_log ~unique_id ?verify_cert ~extended_diagnosis:true host port in
+        Stunnel.connect ~use_fork_exec_helper ~write_to_log ~unique_id ?verify_cert ~extended_diagnosis:true L.scope host port in
+    let st_proc = Scoped_dropable.borrow_exn st_proc' in
     let s = st_proc.Stunnel.fd in
     let s_pid = Stunnel.getpid st_proc.Stunnel.pid in
     debug "stunnel pid: %d (cached = %b) connected to %s:%d" s_pid use_stunnel_cache host port;
@@ -304,7 +309,7 @@ let with_transport transport f =
          finally
            (fun () ->
               try
-                f s
+                f (Unixfd.borrow_exn s)
               with e ->
                 warn "stunnel pid: %d caught %s" s_pid (Printexc.to_string e);
                 if e = Connection_reset && not use_stunnel_cache
@@ -313,7 +318,7 @@ let with_transport transport f =
            (fun () ->
               if use_stunnel_cache
               then begin
-                Stunnel_cache.add st_proc;
+                Stunnel_cache.add st_proc';
                 debug "stunnel pid: %d (cached = %b) returned stunnel to cache" s_pid use_stunnel_cache;
               end else
                 begin

@@ -58,3 +58,5 @@ let socketpair ?loc scope domain typ proto =
   (create ?loc scope fd1, create ?loc scope fd2)
 
 let of_fun ?loc scope f = create ?loc scope (f ())
+
+let borrow_exn t = Scoped_dropable.borrow_exn t |> fst

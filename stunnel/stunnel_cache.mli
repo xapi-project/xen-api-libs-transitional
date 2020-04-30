@@ -26,13 +26,13 @@
     will be used, otherwise we make a fresh one. *)
 val connect :
   ?use_fork_exec_helper:bool ->
-  ?write_to_log:(string -> unit) -> string -> int -> bool -> Stunnel.t
+  ?write_to_log:(string -> unit) -> 'a Resources.Scope.t -> string -> int -> bool -> ('a, 'a Stunnel.t) Resources.Scoped_dropable.t
 
 (** Adds a reusable stunnel to the cache *)
-val add : Stunnel.t -> unit
+val add : ('a, 'a Stunnel.t) Resources.Scoped_dropable.t -> unit
 
 (** Given a host and port return a cached stunnel, or throw Not_found *)
-val remove : string -> int -> bool -> Stunnel.t
+val remove : 'a Resources.Scope.t -> string -> int -> bool -> ('a, 'a Stunnel.t) Resources.Scoped_dropable.t
 
 (** Empty the cache of all stunnels *)
 val flush : unit -> unit

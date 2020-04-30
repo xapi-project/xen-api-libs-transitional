@@ -6,6 +6,8 @@ type 'a t = ('a, T.t) Scoped_dropable.t
 
 val pipe : ?loc:string -> 'a Scope.t -> unit -> 'a t * 'a t
 
+val borrow_exn: 'a t -> Unix.file_descr
+
 val socketpair :
      ?loc:string
   -> 'a Scope.t
