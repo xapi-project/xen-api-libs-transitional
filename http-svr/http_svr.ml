@@ -330,11 +330,8 @@ let request_of_bio_exn_slow ic =
 	it simply throws an exception and doesn't touch the output stream. *)
 
 let request_of_bio_exn bio =
-	let fd = Buf_io.fd_of bio in
-
-	let buf = String.create 1024 in
-	let b, frame = Http.read_http_request_header buf fd in
-	let buf = String.sub buf 0 b in
+  let fd = Buf_io.fd_of bio in
+  let frame, headers, proxy = Http.read_http_request_header fd in
 (*
 	Printf.printf "parsed = [%s]\n" buf;
 	flush stdout;
@@ -380,7 +377,7 @@ let request_of_bio_exn bio =
 						end
 					| _ -> true, req (* end of headers *)
 			end
-		) (false, { empty with Http.Request.frame = frame }) (String.split '\n' buf))
+		) (false, { empty with Http.Request.frame = frame }) (String.split '\n' headers))
 
 (** [request_of_bio ic] returns [Some req] read from [ic], or [None]. If [None] it will have
 	already sent back a suitable error code and response to the client. *)
