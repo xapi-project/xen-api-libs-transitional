@@ -135,8 +135,8 @@ let config_file verify_cert extended_diagnosis host port =
   ; if is_fips then ["fips=yes"] else ["fips=no"]
   ; if extended_diagnosis then ["debug=authpriv.7"] else ["debug=authpriv.5"]
   ; if verify_cert then
-      ["verify=2"
-      ; sprintf "checkHost=%s" host
+      ["verifyChain=yes"
+      ; if Ipaddr.of_string host |> Stdlib.Result.is_ok then sprintf "checkIP=%s" host else sprintf "checkHost=%s" host
       ; sprintf "CAfile=%s" certificates_bundle_path
       ; (match Sys.readdir crl_path with
          | [| |] -> ""
