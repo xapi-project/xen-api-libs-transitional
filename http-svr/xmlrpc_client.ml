@@ -157,9 +157,8 @@ let assert_dest_is_ok host =
     has been checked out and guaranteed to work. *)
 let with_reusable_stunnel ?use_fork_exec_helper ?write_to_log ?verify_cert host port f =
   (* 1. First check if there is a suitable stunnel in the cache. *)
-  let verify_cert = Stunnel.must_verify_cert verify_cert in
   let rec loop () =
-    match Stunnel_cache.with_remove host port verify_cert @@ fun x ->
+    match Stunnel_cache.with_remove ~try_all:false host port @@ fun x ->
       if check_reusable x.Stunnel.fd (Stunnel.getpid x.Stunnel.pid)
       then Ok (f x)
       else begin
@@ -186,7 +185,7 @@ let with_reusable_stunnel ?use_fork_exec_helper ?write_to_log ?verify_cert host 
         incr attempt_number;
         try
           let unique_id = get_new_stunnel_id () in
-          Stunnel.with_connect ~unique_id ?use_fork_exec_helper ?write_to_log ~verify_cert host port @@ fun x ->
+          Stunnel.with_connect ~unique_id ?use_fork_exec_helper ?write_to_log host port @@ fun x ->
           if check_reusable x.Stunnel.fd (Stunnel.getpid x.Stunnel.pid)
           then result := Some (try Ok (f x) with e -> Backtrace.is_important e; Error e)
           else begin
@@ -272,7 +271,7 @@ let with_transport transport f =
       then with_reusable_stunnel ~use_fork_exec_helper ~write_to_log ?verify_cert host port f
       else
         let unique_id = get_new_stunnel_id () in
-        Stunnel.with_connect ~use_fork_exec_helper ~write_to_log ~unique_id ?verify_cert ~extended_diagnosis:true host port f in
+        Stunnel.with_connect ~use_fork_exec_helper ~write_to_log ~unique_id ~extended_diagnosis:true host port f in
     st_proc' @@ fun st_proc ->
     let s = st_proc.Stunnel.fd in
     let s_pid = Stunnel.getpid st_proc.Stunnel.pid in

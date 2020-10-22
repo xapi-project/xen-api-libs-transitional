@@ -37,6 +37,9 @@ let ignore_log fmt =
 (* Use and overlay the definition from D. *)
 let debug = if debug_enabled then debug else ignore_log
 
+(* we use endpoints to index into the cache. we include the field [ verified ]
+   here, because we want to avoid using an stunnel connection that doesn't
+   perform checking, when the user has enabled checking *)
 type endpoint = { host: string; port: int; verified: bool }
 
 (* Need to limit the absolute number of stunnels as well as the maximum age *)
@@ -162,15 +165,14 @@ let add (x: Stunnel.t) =
       unlocked_gc ()
   )
 
-(** Returns an Stunnel.t for this endpoint (oldest first), raising Not_found
-    if none can be found. First performs a garbage-collection, which discards
+(** Returns an Stunnel.t for this endpoint (oldest first), returning None if no
+    stunnels can be found. First performs a garbage-collection, which discards
     expired stunnels if needed. *)
-let with_remove host port verified f =
-  let ep = { host = host; port = port; verified = verified } in
-  let get_id () = Mutex.execute m
+let _with_remove host port verified f =
+  let ep = { host; port; verified } in
+  let get_id_exn () = Mutex.execute m
       (fun () ->
          unlocked_gc ();
-
          let ids = Hashtbl.find !index ep in
          let table = List.map (fun id -> id, Hashtbl.find !times id) ids in
          let sorted = List.sort (fun a b -> compare (snd a) (snd b)) table in
@@ -184,10 +186,22 @@ let with_remove host port verified f =
            id
          | _ -> raise Not_found
       ) in
-  let id_opt = try Some (get_id ()) with Not_found -> None in
+  let id_opt = try Some (get_id_exn ()) with Not_found -> None in
   id_opt |> Option.map @@ fun id ->
   (* cannot call while holding above mutex or we deadlock *)
   Tbl.with_find_moved_exn !stunnels id f
+
+(* [try_all] means that if we can't find any stunnels to [host] in the expected
+   verified mode, then we'll look in the unexpected mode as well. if neither are
+   found, only then will we return None *)
+let with_remove ~try_all host port f =
+  let verified = Stunnel.get_verify_tls_certs () in
+  if not try_all then
+    _with_remove host port verified f
+  else
+    match _with_remove host port verified f with
+    | None -> _with_remove host port (not verified) f
+    | Some x -> Some x
 
 (** Flush the cache - remove everything *)
 let flush () =
@@ -201,9 +215,9 @@ let flush () =
        info "Flushed!")
 
 
-let with_connect ?use_fork_exec_helper ?write_to_log host port verify_cert f =
-  match with_remove host port verify_cert f with
+let with_connect ?use_fork_exec_helper ?write_to_log host port f =
+  match with_remove ~try_all:false host port f with
   | Some r -> r
   | None ->
     info "connect did not find cached stunnel for endpoint %s:%d" host port;
-    Stunnel.with_connect ?use_fork_exec_helper ?write_to_log ~verify_cert host port f
+    Stunnel.with_connect ?use_fork_exec_helper ?write_to_log host port f

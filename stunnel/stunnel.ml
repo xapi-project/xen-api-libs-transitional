@@ -26,7 +26,9 @@ exception Stunnel_verify_error of string
 
 let certificates_bundle_path = "/etc/stunnel/xapi-stunnel-ca-bundle.pem"
 let crl_path = "/etc/stunnel/crls"
-let verify_certificates_ctrl = "/var/xapi/verify_certificates"
+let verify_tls_certs = ref false
+let set_verify_tls_certs x = D.info "stunnel.ml: tls certs will be verified ? %b " x; verify_tls_certs := x
+let get_verify_tls_certs () = !verify_tls_certs
 
 let cached_stunnel_path = ref None
 let stunnel_logger = ref ignore
@@ -265,11 +267,6 @@ let rec retry f = function
       ignore(Unix.select [] [] [] 3.);
       retry f (n - 1)
 
-let must_verify_cert verify_cert =
-  match verify_cert with
-  | Some x -> x
-  | None -> Sys.file_exists verify_certificates_ctrl
-
 (** Establish a fresh stunnel to a (host, port)
     @param extended_diagnosis If true, the stunnel log file will not be
     deleted.  Instead, it is the caller's responsibility to delete it.  This
@@ -278,11 +275,10 @@ let with_connect
     ?unique_id
     ?use_fork_exec_helper
     ?write_to_log
-    ?verify_cert
     ?(extended_diagnosis=false)
     host
     port f = 
-  let _verify_cert = must_verify_cert verify_cert in
+  let _verify_cert = !verify_tls_certs in
   let _ = match write_to_log with
     | Some logger -> stunnel_logger := logger
     | None -> () in

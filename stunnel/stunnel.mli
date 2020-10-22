@@ -38,6 +38,9 @@ type t = { mutable pid: pid;
            verified: bool;
          }
 
+val set_verify_tls_certs : bool -> unit
+val get_verify_tls_certs : unit -> bool
+
 (** Connects via stunnel (optionally via an external 'fork/exec' helper) to
     a host and port.
     NOTE: this does not guarantee the connection to the remote server actually works.
@@ -47,7 +50,6 @@ val with_connect :
   ?unique_id:int ->
   ?use_fork_exec_helper:bool ->
   ?write_to_log:(string -> unit) ->
-  ?verify_cert:bool ->
   ?extended_diagnosis:bool ->
   string -> int -> (t -> 'b) -> 'b
 
@@ -57,8 +59,6 @@ val disconnect : ?wait:bool -> ?force:bool -> t -> unit
 val diagnose_failure : t -> unit
 
 val test : string -> int -> unit
-
-val must_verify_cert : bool option -> bool
 
 val move_out_exn : t -> t
 
