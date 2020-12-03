@@ -27,7 +27,6 @@ module SSL : sig
   (** [make] is used to create a type [t] *)
   val make : ?use_fork_exec_helper:bool ->
     ?use_stunnel_cache:bool ->
-    ?verify_cert:bool ->
     ?task_id:string -> unit -> t
 end
 

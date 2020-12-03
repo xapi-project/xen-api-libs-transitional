@@ -155,7 +155,7 @@ let assert_dest_is_ok host =
 
 (** Returns an stunnel, either from the persistent cache or a fresh one which
     has been checked out and guaranteed to work. *)
-let with_reusable_stunnel ?use_fork_exec_helper ?write_to_log ?verify_cert host port f =
+let with_reusable_stunnel ?use_fork_exec_helper ?write_to_log host port f =
   (* 1. First check if there is a suitable stunnel in the cache. *)
   let rec loop () =
     match Stunnel_cache.with_remove ~try_all:false host port @@ fun x ->
@@ -211,18 +211,16 @@ module SSL = struct
   type t = {
     use_fork_exec_helper: bool;
     use_stunnel_cache: bool;
-    verify_cert: bool option;
     task_id: string option
   }
-  let make ?(use_fork_exec_helper=true) ?(use_stunnel_cache=false) ?(verify_cert) ?task_id () = {
+  let make ?(use_fork_exec_helper=true) ?(use_stunnel_cache=false) ?task_id () = {
     use_fork_exec_helper = use_fork_exec_helper;
     use_stunnel_cache = use_stunnel_cache;
-    verify_cert = verify_cert;
     task_id = task_id
   }
   let to_string (x: t) =
-    Printf.sprintf "{ use_fork_exec_helper = %b; use_stunnel_cache = %b; verify_cert = %s; task_id = %s }"
-      x.use_fork_exec_helper x.use_stunnel_cache (Option.fold ~none:"None" ~some:(fun x -> string_of_bool x) x.verify_cert)
+    Printf.sprintf "{ use_fork_exec_helper = %b; use_stunnel_cache = %b; task_id = %s }"
+      x.use_fork_exec_helper x.use_stunnel_cache
       (Option.fold ~none:"None" ~some:(fun x -> "Some " ^ x) x.task_id)
 end
 
@@ -264,11 +262,10 @@ let with_transport transport f =
   | SSL ({
       SSL.use_fork_exec_helper = use_fork_exec_helper;
       use_stunnel_cache = use_stunnel_cache;
-      verify_cert = verify_cert;
       task_id = task_id}, host, port) ->
     let st_proc' f =
       if use_stunnel_cache
-      then with_reusable_stunnel ~use_fork_exec_helper ~write_to_log ?verify_cert host port f
+      then with_reusable_stunnel ~use_fork_exec_helper ~write_to_log host port f
       else
         let unique_id = get_new_stunnel_id () in
         Stunnel.with_connect ~use_fork_exec_helper ~write_to_log ~unique_id ~extended_diagnosis:true host port f in
