@@ -272,13 +272,15 @@ let rec retry f = function
     deleted.  Instead, it is the caller's responsibility to delete it.  This
     allows the caller to use diagnose_failure below if stunnel fails.  *)
 let with_connect
+    ?(verify_cert=false)
     ?unique_id
     ?use_fork_exec_helper
     ?write_to_log
     ?(extended_diagnosis=false)
     host
     port f = 
-  let _verify_cert = !verify_tls_certs in
+  (* CP-35584 HACK *)
+  let _verify_cert = !verify_tls_certs || verify_cert in
   let _ = match write_to_log with
     | Some logger -> stunnel_logger := logger
     | None -> () in
