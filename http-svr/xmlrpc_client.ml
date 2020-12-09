@@ -271,7 +271,7 @@ let with_transport transport f =
       then with_reusable_stunnel ~use_fork_exec_helper ~write_to_log ?verify_cert host port f
       else
         let unique_id = get_new_stunnel_id () in
-        Stunnel.with_connect ~use_fork_exec_helper ~write_to_log ~unique_id ~extended_diagnosis:true host port f in
+        Stunnel.with_connect ?verify_cert ~use_fork_exec_helper ~write_to_log ~unique_id ~extended_diagnosis:true host port f in
     st_proc' @@ fun st_proc ->
     let s = st_proc.Stunnel.fd in
     let s_pid = Stunnel.getpid st_proc.Stunnel.pid in

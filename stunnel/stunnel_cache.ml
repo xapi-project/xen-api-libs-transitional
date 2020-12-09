@@ -193,9 +193,10 @@ let _with_remove host port verified f =
 
 (* [try_all] means that if we can't find any stunnels to [host] in the expected
    verified mode, then we'll look in the unexpected mode as well. if neither are
-   found, only then will we return None *)
-let with_remove ~try_all host port f =
-  let verified = Stunnel.get_verify_tls_certs () in
+   found, only then will we return None. *)
+let with_remove ?(verify_cert=false) ~try_all host port f =
+  (* CP-35584 HACK *)
+  let verified = Stunnel.get_verify_tls_certs () || verify_cert in
   if not try_all then
     _with_remove host port verified f
   else
@@ -215,9 +216,9 @@ let flush () =
        info "Flushed!")
 
 
-let with_connect ?use_fork_exec_helper ?write_to_log host port f =
-  match with_remove ~try_all:false host port f with
+let with_connect ?(verify_cert=false) ?use_fork_exec_helper ?write_to_log host port f =
+  match with_remove ~verify_cert ~try_all:false host port f with
   | Some r -> r
   | None ->
     info "connect did not find cached stunnel for endpoint %s:%d" host port;
-    Stunnel.with_connect ?use_fork_exec_helper ?write_to_log host port f
+    Stunnel.with_connect ~verify_cert ?use_fork_exec_helper ?write_to_log host port f

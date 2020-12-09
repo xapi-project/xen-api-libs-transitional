@@ -47,6 +47,7 @@ val get_verify_tls_certs : unit -> bool
     For server-side connections, use Xmlrpcclient.get_reusable_stunnel instead.
 *)
 val with_connect :
+  ?verify_cert:bool ->
   ?unique_id:int ->
   ?use_fork_exec_helper:bool ->
   ?write_to_log:(string -> unit) ->

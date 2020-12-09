@@ -25,15 +25,17 @@
     a host and port. If there is a suitable stunnel in the cache then this 
     will be used, otherwise we make a fresh one. *)
 val with_connect :
+  ?verify_cert:bool ->
   ?use_fork_exec_helper:bool ->
-  ?write_to_log:(string -> unit) -> string -> int ->
+  ?write_to_log:(string -> unit) ->
+  string -> int ->
    (Stunnel.t -> 'b) -> 'b
 
 (** Adds a reusable stunnel to the cache *)
 val add : Stunnel.t -> unit
 
 (** Given a host and port call a function with a cached stunnel, or return None. *)
-val with_remove : try_all:bool -> string -> int -> (Stunnel.t -> 'b) -> 'b option
+val with_remove : ?verify_cert:bool -> try_all:bool -> string -> int -> (Stunnel.t -> 'b) -> 'b option
 
 (** Empty the cache of all stunnels *)
 val flush : unit -> unit
