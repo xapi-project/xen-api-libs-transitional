@@ -158,7 +158,7 @@ let assert_dest_is_ok host =
 let with_reusable_stunnel ?use_fork_exec_helper ?write_to_log ?verify_cert host port f =
   (* 1. First check if there is a suitable stunnel in the cache. *)
   let rec loop () =
-    match Stunnel_cache.with_remove ~try_all:false host port @@ fun x ->
+    match Stunnel_cache.with_remove ?verify_cert ~try_all:false host port @@ fun x ->
       if check_reusable x.Stunnel.fd (Stunnel.getpid x.Stunnel.pid)
       then Ok (f x)
       else begin
@@ -185,7 +185,7 @@ let with_reusable_stunnel ?use_fork_exec_helper ?write_to_log ?verify_cert host 
         incr attempt_number;
         try
           let unique_id = get_new_stunnel_id () in
-          Stunnel.with_connect ~unique_id ?use_fork_exec_helper ?write_to_log host port @@ fun x ->
+          Stunnel.with_connect ?verify_cert ~unique_id ?use_fork_exec_helper ?write_to_log host port @@ fun x ->
           if check_reusable x.Stunnel.fd (Stunnel.getpid x.Stunnel.pid)
           then result := Some (try Ok (f x) with e -> Backtrace.is_important e; Error e)
           else begin
