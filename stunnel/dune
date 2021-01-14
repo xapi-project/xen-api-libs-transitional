@@ -4,15 +4,15 @@
   (wrapped false)
   (flags (:standard -w -37))
   (libraries astring
-             fmt
              forkexec
              ipaddr
-             logs.fmt
              ptime
              safe-resources
              threads
+             uuidm
+             xapi-idl
+             xapi-inventory
              xapi-stdext-pervasives
              xapi-stdext-threads
-             xapi-stdext-unix
-             xapi-idl)
+             xapi-stdext-unix)
 )
