@@ -24,7 +24,8 @@ exception Stunnel_binary_missing
 exception Stunnel_error of string
 exception Stunnel_verify_error of string
 
-let certificates_bundle_path = "/etc/stunnel/xapi-stunnel-ca-bundle.pem"
+let xapi_cert_bundle_path = "/etc/stunnel/xapi-stunnel-ca-bundle.pem"
+let pool_cert_bundle_path = "/etc/stunnel/xapi-pool-ca-bundle.pem"
 
 let crl_path = "/etc/stunnel/crls"
 let verify_certificates_ctrl = "/var/xapi/verify_certificates"
@@ -146,7 +147,7 @@ let config_file verify_cert extended_diagnosis host port =
       ; "# the cert of the server we connect to"
       ; "sni = pool"
       ; "verifyPeer=yes"
-      ; sprintf "CAfile=%s" certificates_bundle_path
+      ; sprintf "CAfile=%s" pool_cert_bundle_path
       ; (match Sys.readdir crl_path with
          | [| |] -> ""
          | _ -> sprintf "CRLpath=%s" crl_path
