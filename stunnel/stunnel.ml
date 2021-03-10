@@ -126,6 +126,8 @@ let getpid ty =
   | Nopid ->
       failwith "No pid!"
 
+type config = {sni: string option; cert_bundle_path: string}
+
 type t = {
     mutable pid: pid
   ; fd: Unixfd.t
@@ -134,10 +136,14 @@ type t = {
   ; connected_time: float
   ; unique_id: int option
   ; mutable logfile: string
-  ; verified: bool
+  ; verified: config option
 }
 
-let config_file verify_cert extended_diagnosis host port =
+let appliance = {sni= None; cert_bundle_path= "/etc/stunnel/certs"}
+
+let pool = {sni= Some "pool"; cert_bundle_path= "/etc/stunnel/pool-certs"}
+
+let config_file config extended_diagnosis host port =
   let is_fips =
     Inventory.inventory_filename := "/etc/xensource-inventory" ;
     try bool_of_string (Inventory.lookup ~default:"false" "CC_PREPARATIONS")
@@ -171,13 +177,16 @@ let config_file verify_cert extended_diagnosis host port =
          ; "ciphers = " ^ Xcp_const.good_ciphersuites
          ; "curve = secp384r1"
          ]
-       ; ( if verify_cert then
+       ; ( match config with
+         | None ->
+             []
+         | Some {sni; cert_bundle_path} ->
              [
                ""
              ; "# use SNI to request a specific cert. CAfile contains"
              ; "# public certs of all hosts in the pool and must contain"
              ; "# the cert of the server we connect to"
-             ; "sni = pool"
+             ; (match sni with None -> "" | Some s -> sprintf "sni = %s" s)
              ; "verifyPeer=yes"
              ; sprintf "CAfile=%s" certificates_bundle_path
              ; ( match Sys.readdir crl_path with
@@ -189,8 +198,6 @@ let config_file verify_cert extended_diagnosis host port =
                    ""
                )
              ]
-         else
-           []
          )
        ; [""]
        ]
@@ -361,7 +368,6 @@ let must_verify_cert verify_cert =
     allows the caller to use diagnose_failure below if stunnel fails.  *)
 let with_connect ?unique_id ?use_fork_exec_helper ?write_to_log ?verify_cert
     ?(extended_diagnosis = false) host port f =
-  let _verify_cert = must_verify_cert verify_cert in
   let _ =
     match write_to_log with
     | Some logger ->
@@ -372,7 +378,7 @@ let with_connect ?unique_id ?use_fork_exec_helper ?write_to_log ?verify_cert
   retry
     (fun () ->
       with_attempt_one_connect ?unique_id ?use_fork_exec_helper ?write_to_log
-        _verify_cert extended_diagnosis host port f)
+        verify_cert extended_diagnosis host port f)
     5
 
 let check_verify_error line =

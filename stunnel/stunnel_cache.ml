@@ -37,7 +37,7 @@ let ignore_log fmt = Printf.ksprintf (fun _ -> ()) fmt
 (* Use and overlay the definition from D. *)
 let debug = if debug_enabled then debug else ignore_log
 
-type endpoint = {host: string; port: int; verified: bool}
+type endpoint = {host: string; port: int; verified: Stunnel.config option}
 
 (* Need to limit the absolute number of stunnels as well as the maximum age *)
 let max_stunnel = 70
@@ -225,11 +225,10 @@ let flush () =
       info "Flushed!")
 
 let with_connect ?use_fork_exec_helper ?write_to_log ?verify_cert host port f =
-  let verify_cert = Stunnel.must_verify_cert verify_cert in
   match with_remove host port verify_cert f with
   | Some r ->
       r
   | None ->
       info "connect did not find cached stunnel for endpoint %s:%d" host port ;
-      Stunnel.with_connect ?use_fork_exec_helper ?write_to_log ~verify_cert host
+      Stunnel.with_connect ?use_fork_exec_helper ?write_to_log ?verify_cert host
         port f

@@ -32,6 +32,8 @@ type pid =
 
 val getpid : pid -> int
 
+type config = {sni: string option; cert_bundle_path: string}
+
 (** Represents an active stunnel connection *)
 type t = {
     mutable pid: pid
@@ -42,14 +44,18 @@ type t = {
         (** time when the connection opened, for 'early retirement' *)
   ; unique_id: int option
   ; mutable logfile: string
-  ; verified: bool
+  ; verified: config option
 }
+
+val appliance : config
+
+val pool : config
 
 val with_connect :
      ?unique_id:int
   -> ?use_fork_exec_helper:bool
   -> ?write_to_log:(string -> unit)
-  -> ?verify_cert:bool
+  -> ?verify_cert:config
   -> ?extended_diagnosis:bool
   -> string
   -> int

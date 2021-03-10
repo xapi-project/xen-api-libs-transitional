@@ -178,7 +178,6 @@ let assert_dest_is_ok host =
 let with_reusable_stunnel ?use_fork_exec_helper ?write_to_log ?verify_cert host
     port f =
   (* 1. First check if there is a suitable stunnel in the cache. *)
-  let verify_cert = Stunnel.must_verify_cert verify_cert in
   let rec loop () =
     match
       Stunnel_cache.with_remove host port verify_cert @@ fun x ->
@@ -215,7 +214,7 @@ let with_reusable_stunnel ?use_fork_exec_helper ?write_to_log ?verify_cert host
           try
             let unique_id = get_new_stunnel_id () in
             Stunnel.with_connect ~unique_id ?use_fork_exec_helper ?write_to_log
-              ~verify_cert host port
+              ?verify_cert host port
             @@ fun x ->
             if check_reusable x.Stunnel.fd (Stunnel.getpid x.Stunnel.pid) then
               result :=
@@ -260,7 +259,7 @@ module SSL = struct
   type t = {
       use_fork_exec_helper: bool
     ; use_stunnel_cache: bool
-    ; verify_cert: bool option
+    ; verify_cert: Stunnel.config option
     ; task_id: string option
   }
 
@@ -273,7 +272,7 @@ module SSL = struct
       "{ use_fork_exec_helper = %b; use_stunnel_cache = %b; verify_cert = %s; \
        task_id = %s }"
       x.use_fork_exec_helper x.use_stunnel_cache
-      (Option.fold ~none:"None" ~some:(fun x -> string_of_bool x) x.verify_cert)
+      (Option.fold ~none:"None" ~some:(fun _ -> "Yes") x.verify_cert)
       (Option.fold ~none:"None" ~some:(fun x -> "Some " ^ x) x.task_id)
 end
 
