@@ -32,7 +32,9 @@ type pid =
 
 val getpid : pid -> int
 
-type config = {sni: string option; cert_bundle_path: string}
+type verify = VerifyPeer | CheckHost
+
+type config = {sni: string option; verify: verify; cert_bundle_path: string}
 
 (** Represents an active stunnel connection *)
 type t = {

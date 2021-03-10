@@ -126,7 +126,9 @@ let getpid ty =
   | Nopid ->
       failwith "No pid!"
 
-type config = {sni: string option; cert_bundle_path: string}
+type verify = VerifyPeer | CheckHost
+
+type config = {sni: string option; verify: verify; cert_bundle_path: string}
 
 type t = {
     mutable pid: pid
@@ -139,9 +141,15 @@ type t = {
   ; verified: config option
 }
 
-let appliance = {sni= None; cert_bundle_path= "/etc/stunnel/certs"}
+let appliance =
+  {sni= None; verify= CheckHost; cert_bundle_path= "/etc/stunnel/certs"}
 
-let pool = {sni= Some "pool"; cert_bundle_path= "/etc/stunnel/pool-certs"}
+let pool =
+  {
+    sni= Some "pool"
+  ; verify= VerifyPeer
+  ; cert_bundle_path= "/etc/stunnel/pool-certs"
+  }
 
 let config_file config extended_diagnosis host port =
   let is_fips =
@@ -180,14 +188,19 @@ let config_file config extended_diagnosis host port =
        ; ( match config with
          | None ->
              []
-         | Some {sni; cert_bundle_path} ->
+         | Some {sni; verify; cert_bundle_path} ->
              [
                ""
              ; "# use SNI to request a specific cert. CAfile contains"
              ; "# public certs of all hosts in the pool and must contain"
              ; "# the cert of the server we connect to"
              ; (match sni with None -> "" | Some s -> sprintf "sni = %s" s)
-             ; "verifyPeer=yes"
+             ; ( match verify with
+               | VerifyPeer ->
+                   "verifyPeer=yes"
+               | CheckHost ->
+                   sprintf "checkHost=%s" host
+               )
              ; sprintf "CAfile=%s" certificates_bundle_path
              ; ( match Sys.readdir crl_path with
                | [||] ->
