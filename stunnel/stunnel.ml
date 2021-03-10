@@ -152,6 +152,16 @@ let pool =
   }
 
 let config_file config extended_diagnosis host port =
+  ( match config with
+  | None ->
+      D.debug "client cert verification %s:%d: None" host port
+  | Some {sni= Some x; cert_bundle_path; _} ->
+      D.debug "client cert verification %s:%d: SNI=%s path=%s" host port x
+        cert_bundle_path
+  | Some {sni= None; cert_bundle_path; _} ->
+      D.debug "client cert verification %s:%d: path=%s" host port
+        cert_bundle_path
+  ) ;
   let is_fips =
     Inventory.inventory_filename := "/etc/xensource-inventory" ;
     try bool_of_string (Inventory.lookup ~default:"false" "CC_PREPARATIONS")
