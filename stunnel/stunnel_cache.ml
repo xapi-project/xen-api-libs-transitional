@@ -224,11 +224,11 @@ let flush () =
       Hashtbl.clear !index ;
       info "Flushed!")
 
-let with_connect ?use_fork_exec_helper ?write_to_log ?verify_cert host port f =
+let with_connect ?use_fork_exec_helper ?write_to_log ~verify_cert host port f =
   match with_remove host port verify_cert f with
   | Some r ->
       r
   | None ->
       info "connect did not find cached stunnel for endpoint %s:%d" host port ;
-      Stunnel.with_connect ?use_fork_exec_helper ?write_to_log ?verify_cert host
+      Stunnel.with_connect ?use_fork_exec_helper ?write_to_log ~verify_cert host
         port f

@@ -389,7 +389,7 @@ let must_verify_cert verify_cert =
     @param extended_diagnosis If true, the stunnel log file will not be
     deleted.  Instead, it is the caller's responsibility to delete it.  This
     allows the caller to use diagnose_failure below if stunnel fails.  *)
-let with_connect ?unique_id ?use_fork_exec_helper ?write_to_log ?verify_cert
+let with_connect ?unique_id ?use_fork_exec_helper ?write_to_log ~verify_cert
     ?(extended_diagnosis = false) host port f =
   let _ =
     match write_to_log with
@@ -448,7 +448,8 @@ let diagnose_failure st_proc =
 let test host port =
   let counter = ref 0 in
   while true do
-    with_connect ~write_to_log:print_endline host port disconnect ;
+    with_connect ~write_to_log:print_endline host ~verify_cert:None port
+      disconnect ;
     incr counter ;
     if !counter mod 100 = 0 then (
       Printf.printf "Ran stunnel %d times\n" !counter ;

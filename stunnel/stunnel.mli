@@ -57,7 +57,7 @@ val with_connect :
      ?unique_id:int
   -> ?use_fork_exec_helper:bool
   -> ?write_to_log:(string -> unit)
-  -> ?verify_cert:config
+  -> verify_cert:config option
   -> ?extended_diagnosis:bool
   -> string
   -> int

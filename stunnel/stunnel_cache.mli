@@ -23,7 +23,7 @@
 val with_connect :
      ?use_fork_exec_helper:bool
   -> ?write_to_log:(string -> unit)
-  -> ?verify_cert:Stunnel.config
+  -> verify_cert:Stunnel.config option
   -> string
   -> int
   -> (Stunnel.t -> 'b)
