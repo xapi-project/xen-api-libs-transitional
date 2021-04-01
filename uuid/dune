@@ -2,7 +2,7 @@
   (name uuid)
   (public_name uuid)
   (modules uuid)
-  (libraries unix)
+  (libraries unix uuidm)
 )
 
 (test
