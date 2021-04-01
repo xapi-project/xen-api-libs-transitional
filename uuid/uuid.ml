@@ -115,3 +115,7 @@ let is_uuid str =
       "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x"
       (fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ -> true)
   with _ -> false
+
+let pp = Format.pp_print_string
+
+let equal = String.equal
