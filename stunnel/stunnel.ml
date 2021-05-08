@@ -115,7 +115,14 @@ type t = { mutable pid: pid; fd: Unixfd.t; host: string; port: int;
            verified: bool;
          }
 
-let config_file verify_cert extended_diagnosis host port =
+let debug_conf_of_bool verbose : string =
+  if verbose then "debug=authpriv.7" else "debug=authpriv.5"
+
+let debug_conf_of_env () : string =
+  (try Unix.getenv "debug_stunnel" with _ -> "") |> String.lowercase_ascii
+  |> fun x -> List.mem x ["yes"; "true"; "1"] |> debug_conf_of_bool
+
+let config_file verify_cert host port =
   let is_fips =
     Inventory.inventory_filename := "/etc/xensource-inventory";
     try
@@ -134,7 +141,7 @@ let config_file verify_cert extended_diagnosis host port =
     ; Printf.sprintf "connect=%s:%d" host port
     ]
   ; if is_fips then ["fips=yes"] else ["fips=no"]
-  ; if extended_diagnosis then ["debug=authpriv.7"] else ["debug=authpriv.5"]
+  ; [debug_conf_of_env ()]
   ; if verify_cert then
       ["verify=2"
       ; sprintf "checkHost=%s" host
@@ -231,7 +238,7 @@ let with_attempt_one_connect ?unique_id ?(use_fork_exec_helper = true)
                        (path::args));
          Unixfd.safe_close config_out;
          Unixfd.safe_close data_in;
-         let config = config_file verify_cert extended_diagnosis host port in
+         let config = config_file verify_cert host port in
          (* Catch the occasional initialisation failure of stunnel: *)
          try
            let len = String.length config in
