@@ -73,8 +73,12 @@ val int_array_of_uuid : 'a t -> int array
   [@@deprecated "Use Uuid.to_int_array"]
 (** Deprecated alias for {! Uuid.to_int_array} *)
 
-(** A 512-bit cookie. *)
+val of_bytes : string -> 'a t option
+
+val to_bytes : 'a t -> string
+
 type cookie
+(** A 512-bit cookie. *)
 
 val make_cookie : unit -> cookie
 
