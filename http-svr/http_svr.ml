@@ -330,17 +330,15 @@ let request_of_bio_exn_slow ic =
 	it simply throws an exception and doesn't touch the output stream. *)
 
 let request_of_bio_exn bio =
-	let fd = Buf_io.fd_of bio in
-
-	let buf = String.create 1024 in
-	let b, frame = Http.read_http_request_header buf fd in
-	let buf = String.sub buf 0 b in
-(*
-	Printf.printf "parsed = [%s]\n" buf;
-	flush stdout;
-*)
+  let fd = Buf_io.fd_of bio in
+  let frame, headers, proxy = Http.read_http_request_header fd in
+  let additional_headers =
+    match proxy with
+    | None -> []
+    | Some p -> [("STUNNEL_PROXY", p)]
+  in
 	let open Http.Request in
-	snd(List.fold_left
+  String.split '\n' headers |> List.fold_left
 		(fun (status, req) header ->
 			if not status then begin
 				match String.split_f String.isspace header with
@@ -380,7 +378,7 @@ let request_of_bio_exn bio =
 						end
 					| _ -> true, req (* end of headers *)
 			end
-		) (false, { empty with Http.Request.frame = frame }) (String.split '\n' buf))
+    ) (false, { empty with Http.Request.frame = frame ; additional_headers }) |> snd
 
 (** [request_of_bio ic] returns [Some req] read from [ic], or [None]. If [None] it will have
 	already sent back a suitable error code and response to the client. *)

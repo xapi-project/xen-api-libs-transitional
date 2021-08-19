@@ -26,10 +26,11 @@ type authorization =
     | Basic of string * string
     | UnknownAuth of string
 
-val read_http_header: string -> Unix.file_descr -> int
+val read_http_header: bytes -> Unix.file_descr -> int
+val make_frame_header: string -> string
 
-val read_http_request_header: string -> Unix.file_descr -> int * bool
-val read_http_response_header: string -> Unix.file_descr -> int
+val read_http_request_header: Unix.file_descr -> bool * string * string option
+val read_http_response_header: bytes -> Unix.file_descr -> int
 
 module Accept : sig
 	type t = {
