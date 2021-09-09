@@ -55,7 +55,7 @@ let http_proxy src_ip src_port transport =
     finally
       (fun () ->
          let bio = Buf_io.of_fd fromfd in
-         let request = Http_svr.request_of_bio bio in
+         let request, _ = Http_svr.request_of_bio bio in
          Opt.iter
            (fun request ->
               with_transport transport (one request fromfd)
