@@ -397,6 +397,7 @@ let request_of_bio_exn ~proxy_seen bio =
           ) (false, { empty with Http.Request.frame = frame ; additional_headers }) |> snd
   in
   (request, proxy)
+
 (** [request_of_bio ic] returns [Some req] read from [ic], or [None]. If [None] it will have
     	already sent back a suitable error code and response to the client. *)
 let request_of_bio ?(use_fastpath=false) ?proxy_seen ic =
