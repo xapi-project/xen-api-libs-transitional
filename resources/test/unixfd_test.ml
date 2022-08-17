@@ -42,7 +42,8 @@ let run () =
       (* this is intentionally buggy here: it leaks.
        * GC finaliser should detect, warn and clean up *)
       Safe.move_exn p1 |> ignore ;
-      Safe.move_exn p2 |> ignore)
+      Safe.move_exn p2 |> ignore
+  )
 
 let leak_detected (count0, count1, count2) =
   (* do not call alcotest inhere, it gives weird results with memory getting freed,
@@ -61,24 +62,28 @@ let test_unixfd_leak_detected () =
   in
   Alcotest.(check int "memory leak in words" 0 delta) ;
   Alcotest.(
-    check int "count of open FDs after pipe 2 higher" (!count0 + 2) !count1) ;
+    check int "count of open FDs after pipe 2 higher" (!count0 + 2) !count1
+  ) ;
   Alcotest.(check int "count of open FDs same as original" !count0 !count2)
 
 let noleak2 () =
   let moved1, moved2 =
     count0 := count_fds () ;
-    Unixfd.with_pipe ~loc:__LOC__ () (fun p1 p2 -> (Safe.move_exn p1, Safe.move_exn p2))
+    Unixfd.with_pipe ~loc:__LOC__ () (fun p1 p2 ->
+        (Safe.move_exn p1, Safe.move_exn p2)
+    )
   in
   count1 := count_fds () ;
-  Safe.within (Safe.move_exn moved1) @@ ignore;
-  Safe.within (Safe.move_exn moved2) @@ ignore;
+  Safe.within (Safe.move_exn moved1) @@ ignore ;
+  Safe.within (Safe.move_exn moved2) @@ ignore ;
   count2 := count_fds ()
 
 let test_unixfd_noleak2 () =
   (* this just ensures we didn't stash something into a global *)
   let delta = memory_usage_growth noleak2 in
   Alcotest.(
-    check int "count of open FDs after pipe 2 higher" (!count0 + 2) !count1) ;
+    check int "count of open FDs after pipe 2 higher" (!count0 + 2) !count1
+  ) ;
   Alcotest.(check int "count of open FDs same as original" !count0 !count2) ;
   Alcotest.(check int "memory leak in words" 0 delta)
 

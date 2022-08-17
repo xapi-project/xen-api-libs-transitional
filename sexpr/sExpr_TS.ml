@@ -15,7 +15,8 @@
 let lock = Mutex.create ()
 
 let of_string s =
-  Xapi_stdext_threads.Threadext.Mutex.execute lock
-    (fun () -> SExprParser.expr SExprLexer.token (Lexing.from_string s))
+  Xapi_stdext_threads.Threadext.Mutex.execute lock (fun () ->
+      SExprParser.expr SExprLexer.token (Lexing.from_string s)
+  )
 
 let string_of = SExpr.string_of
