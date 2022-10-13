@@ -23,12 +23,17 @@ type handler = {
     name: string
   ; (* body should close the provided fd *)
     body: Unix.sockaddr -> Unix.file_descr -> unit
+  ; lock: Xapi_stdext_threads.Semaphore.t
 }
 
 let handler_by_thread (h : handler) (s : Unix.file_descr)
     (caller : Unix.sockaddr) =
   Thread.create
-    (fun () -> Debug.with_thread_named h.name (fun () -> h.body caller s) ())
+    (fun () ->
+      Fun.protect
+        ~finally:(fun () -> Xapi_stdext_threads.Semaphore.release h.lock 1)
+        (Debug.with_thread_named h.name (fun () -> h.body caller s))
+    )
     ()
 
 (** Function with the main accept loop *)
@@ -42,7 +47,7 @@ type sock_or_addr =
   | Server_sockaddr of Unix.sockaddr
   | Server_fd of Unix.file_descr
 
-let establish_server ?(signal_fds = []) forker sockoraddr =
+let establish_server ?(signal_fds = []) forker handler sockoraddr =
   let sock =
     match sockoraddr with
     | Server_sockaddr sockaddr ->
@@ -69,11 +74,11 @@ let establish_server ?(signal_fds = []) forker sockoraddr =
       let r, _, _ = Unix.select ([sock] @ signal_fds) [] [] (-1.) in
       (* If any of the signal_fd is active then bail out *)
       if set_intersect r signal_fds <> [] then raise PleaseClose ;
-
+      Xapi_stdext_threads.Semaphore.acquire handler.lock 1 ;
       let s, caller = Unix.accept sock in
       try
         Unix.set_close_on_exec s ;
-        ignore (forker s caller)
+        ignore (forker handler s caller)
       with exc ->
         (* NB provided 'forker' is configured to make a background thread then the
            	     only way we can get here is if set_close_on_exec or Thread.create fails.
@@ -116,9 +121,8 @@ let server handler sock =
         Debug.with_thread_named handler.name
           (fun () ->
             try
-              establish_server ~signal_fds:[status_out]
-                (handler_by_thread handler)
-                (Server_fd sock)
+              establish_server ~signal_fds:[status_out] handler_by_thread
+                handler (Server_fd sock)
             with PleaseClose -> debug "Server thread exiting"
           )
           ()
