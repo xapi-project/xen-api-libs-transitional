@@ -304,7 +304,7 @@ let transport_of_url (scheme, _) =
       let port = Opt.default 443 h.port in
       SSL (SSL.make (), h.host, port)
 
-let with_transport transport f =
+let with_transport ?(stunnel_wait_disconnect = true) transport f =
   let open Xapi_stdext_unix in
   match transport with
   | Unix path ->
@@ -376,7 +376,7 @@ let with_transport transport f =
                   s_pid use_stunnel_cache
               ) else (
                 Unix.unlink st_proc.Stunnel.logfile ;
-                Stunnel.disconnect st_proc
+                Stunnel.disconnect ~wait:stunnel_wait_disconnect st_proc
               )
             )
       )
