@@ -181,6 +181,7 @@ let response_of_fd_exn fd =
 
 (** [response_of_fd fd] returns an optional Http.Response.t record *)
 let response_of_fd ?(use_fastpath = false) fd =
+  let __FUN = "Http_client.response_of_fd" in
   try
     if use_fastpath then
       Some (response_of_fd_exn fd)
@@ -189,7 +190,12 @@ let response_of_fd ?(use_fastpath = false) fd =
   with
   | Unix.Unix_error (_, _, _) as e ->
       raise e
-  | _ ->
+  | e ->
+      Backtrace.is_important e ;
+      let bt = Backtrace.get e in
+      Debug.log_backtrace e bt ;
+      D.debug "%s: returning no response because of the exception: %s" __FUN
+        (Printexc.to_string e) ;
       None
 
 (** See perftest/tests.ml *)
